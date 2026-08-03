@@ -6,6 +6,24 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `mypy` failed on a checkout without the optional `anthropic` package
+  installed (as in CI, where only the `dev` extra is present). Optional
+  integrations are now declared in the mypy config, so type-checking no longer
+  requires installing every extra.
+- The bundled YAML parser returned `{}` for a comments-only or empty policy
+  file where PyYAML returns `None`, so the "policy file is empty" error was
+  raised only when PyYAML happened to be installed.
+- The bundled YAML parser left unquoted ISO dates as strings where PyYAML
+  produces `datetime.date`. Both backends now yield identical objects.
+
+### Added
+
+- A parametrized test asserting the bundled YAML parser and PyYAML agree, so
+  behavior no longer depends on which backend is present. It skips when PyYAML
+  is absent, since cross-checking is the point.
+
 ## [0.2.0] - 2026-08-03
 
 Production/enterprise release: runtime guarding, policy-as-code, baselines,

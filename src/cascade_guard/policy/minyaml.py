@@ -19,11 +19,16 @@ than silently mis-parsing.
 
 from __future__ import annotations
 
+import datetime as _dt
+import re
 from typing import Any
 
 from cascade_guard.exceptions import PolicyError
 
 _BOOLS = {"true": True, "yes": True, "on": True, "false": False, "no": False, "off": False}
+#: Unquoted ISO dates become ``datetime.date``, matching PyYAML, so the two
+#: backends produce identical objects.
+_ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def safe_load(text: str) -> Any:
@@ -77,10 +82,14 @@ def _tokenize(text: str) -> list[_Line]:
 
 
 def parse(text: str) -> Any:
-    """Parse using the built-in subset parser (no PyYAML required)."""
+    """Parse using the built-in subset parser (no PyYAML required).
+
+    A document with no content parses to ``None``, matching PyYAML, so
+    callers see identical behavior whichever backend is in use.
+    """
     lines = _tokenize(text)
     if not lines:
-        return {}
+        return None
     value, index = _parse_block(lines, 0, lines[0].indent)
     if index != len(lines):
         raise PolicyError(
@@ -187,6 +196,11 @@ def _parse_scalar(raw: str, lineno: int) -> Any:
         return _BOOLS[lowered]
     if value.startswith(("[", "{")):
         return _parse_flow(value, lineno)
+    if _ISO_DATE.match(value):
+        try:
+            return _dt.date.fromisoformat(value)
+        except ValueError:
+            pass  # e.g. 2026-13-45 — fall through and keep it a string
     try:
         return int(value)
     except ValueError:

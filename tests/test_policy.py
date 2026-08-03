@@ -86,6 +86,39 @@ def test_parser_rejects_tabs_with_a_line_number():
         parse("a: 1\n\tb: 2\n")
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "",
+        "# just a comment\n",
+        "\n\n",
+        FULL_POLICY,
+        "items:\n  - one\n  - two\n",
+        "a: 1\nb: null\nc: true\n",
+        "expires: 2026-12-31\n",  # unquoted ISO date -> datetime.date
+        'quoted: "2026-12-31"\n',  # quoted stays a string
+    ],
+)
+def test_fallback_parser_matches_pyyaml(text):
+    """The bundled parser and PyYAML must agree, so behavior is backend-independent.
+
+    Skipped when PyYAML is absent — the point is cross-checking the two, and
+    the bundled parser is exercised directly by every other test here.
+    """
+    yaml = pytest.importorskip("yaml")
+    assert parse(text) == yaml.safe_load(text)
+
+
+def test_fallback_parser_tolerates_an_impossible_date():
+    """PyYAML raises on 2026-13-45; the bundled parser keeps it as a string.
+
+    A policy file is config, not a data feed: a nonsense date should surface
+    as a validation error naming the field, not a parser crash. `_parse_date`
+    then produces that message when the value is actually used.
+    """
+    assert parse("not_a_date: 2026-13-45\n") == {"not_a_date": "2026-13-45"}
+
+
 # -- policy model ------------------------------------------------------
 
 

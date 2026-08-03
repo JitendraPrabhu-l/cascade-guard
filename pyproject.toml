@@ -88,3 +88,10 @@ python_version = "3.10"
 strict = true
 files = ["src/cascade_guard"]
 warn_unused_ignores = false
+
+# Optional integrations are imported lazily and guarded by try/except, so they
+# are legitimately absent in a core (or dev) install. Type-checking must not
+# require installing every extra.
+[[tool.mypy.overrides]]
+module = ["anthropic", "anthropic.*", "yaml"]
+ignore_missing_imports = true
