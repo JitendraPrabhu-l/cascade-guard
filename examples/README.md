@@ -1,5 +1,15 @@
 # Examples
 
+## `cascade-guard.yaml`
+
+A fully commented policy file: thresholds, runtime-guard settings, baseline
+gating, and auditable suppressions. Copy it next to your pipeline and run:
+
+```bash
+cascade-guard policy validate examples/cascade-guard.yaml
+cascade-guard policy show examples/cascade-guard.yaml
+```
+
 ## `langgraph_updates.jsonl`
 
 A small LangGraph-style trace in `stream_mode="updates"` shape: three agents

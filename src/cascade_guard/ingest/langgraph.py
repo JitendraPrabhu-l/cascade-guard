@@ -89,6 +89,52 @@ def _iter_message_groups(record: dict[str, Any]) -> list[tuple[str | None, list[
     return groups
 
 
+def events_from_update(record: dict[str, Any], start_turn: int = 0) -> list[TraceEvent]:
+    """Convert one LangGraph update payload into normalized events.
+
+    Shared by the file adapter and the runtime guard so a live run and its
+    post-hoc analysis see identical events.
+    """
+    events: list[TraceEvent] = []
+    turn = start_turn
+    for node, messages in _iter_message_groups(record):
+        for msg in messages:
+            if not isinstance(msg, dict):
+                continue
+            event = _parse_message(msg, node, turn)
+            if event is not None:
+                events.append(event)
+                turn += 1
+    return events
+
+
+def _parse_message(msg: dict[str, Any], node: str | None, turn: int) -> TraceEvent | None:
+    fields, raw_type = _message_payload(msg)
+    role = _ROLE_MAP.get(raw_type.lower(), "assistant")
+    content = _text_content(fields.get("content"))
+    if not content and role != "tool":
+        return None
+    agent = str(fields.get("name") or node or role)
+    usage = fields.get("usage_metadata") or {}
+    if not isinstance(usage, dict):
+        usage = {}
+    metadata: dict[str, Any] = {}
+    if fields.get("tool_calls"):
+        metadata["tool_calls"] = fields["tool_calls"]
+    if node is not None:
+        metadata["node"] = node
+    return TraceEvent(
+        agent=agent,
+        content=content,
+        turn=turn,
+        event_id=str(fields.get("id") or f"lg-{turn}"),
+        role=role,
+        tokens_in=int(usage.get("input_tokens") or 0),
+        tokens_out=int(usage.get("output_tokens") or 0),
+        metadata=metadata,
+    )
+
+
 class LangGraphAdapter(TraceAdapter):
     name = "langgraph"
     priority = 10
@@ -108,48 +154,13 @@ class LangGraphAdapter(TraceAdapter):
 
     def load(self, path: Path) -> Trace:
         events: list[TraceEvent] = []
-        turn = 0
         for record in iter_json_records(path):
             if not isinstance(record, dict):
                 continue
-            for node, messages in _iter_message_groups(record):
-                for msg in messages:
-                    if not isinstance(msg, dict):
-                        continue
-                    event = self._parse_message(msg, node, turn)
-                    if event is not None:
-                        events.append(event)
-                        turn += 1
+            events.extend(events_from_update(record, start_turn=len(events)))
         if not events:
             raise AdapterError(
                 f"{path}: no LangGraph messages found. Expected 'updates'-style "
                 "records ({node: {'messages': [...]}}) or {'messages': [...]} records."
             )
         return Trace(events=events, source=str(path))
-
-    @staticmethod
-    def _parse_message(msg: dict[str, Any], node: str | None, turn: int) -> TraceEvent | None:
-        fields, raw_type = _message_payload(msg)
-        role = _ROLE_MAP.get(raw_type.lower(), "assistant")
-        content = _text_content(fields.get("content"))
-        if not content and role != "tool":
-            return None
-        agent = str(fields.get("name") or node or role)
-        usage = fields.get("usage_metadata") or {}
-        if not isinstance(usage, dict):
-            usage = {}
-        metadata: dict[str, Any] = {}
-        if fields.get("tool_calls"):
-            metadata["tool_calls"] = fields["tool_calls"]
-        if node is not None:
-            metadata["node"] = node
-        return TraceEvent(
-            agent=agent,
-            content=content,
-            turn=turn,
-            event_id=str(fields.get("id") or f"lg-{turn}"),
-            role=role,
-            tokens_in=int(usage.get("input_tokens") or 0),
-            tokens_out=int(usage.get("output_tokens") or 0),
-            metadata=metadata,
-        )

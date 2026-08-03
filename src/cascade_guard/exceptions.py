@@ -13,3 +13,11 @@ class AdapterError(CascadeGuardError):
 
 class JudgeError(CascadeGuardError):
     """The optional LLM judge is unavailable or failed."""
+
+
+class PolicyError(CascadeGuardError):
+    """A policy file is malformed or contains invalid settings."""
+
+
+class BaselineError(CascadeGuardError):
+    """The baseline store could not be read or written."""

@@ -1,0 +1,49 @@
+# Example Cascade Guard policy.
+#
+# Copy this next to the pipeline it governs (as cascade-guard.yaml) and review
+# it like any other config. It is auto-discovered by walking up from the trace
+# path, so `cascade-guard analyze trace.jsonl` picks it up with no flags.
+#
+# Validate with:  cascade-guard policy validate
+# Inspect with:   cascade-guard policy show
+
+version: 1
+pipeline: research-crew
+
+thresholds:
+  # CI fails (exit 2) above this cascade risk.
+  fail_over: 60
+  # Reported but does not fail the build.
+  warn_over: 40
+  # Fail if more than this many unsupported flips survive suppressions.
+  max_unsupported_flips: 1
+
+runtime:
+  # Settings handed to the runtime guard (cascade-guard guard / CascadeGuard).
+  risk_threshold: 55
+  halt_threshold: 85
+  min_agents: 3
+  warmup_turns: 2
+  max_interventions_per_agent: 2
+  # Start here when first enabling the guard in production: every intervention
+  # is downgraded to a warning, so nothing changes behavior while you calibrate.
+  observe_only: false
+
+baseline:
+  enabled: true
+  # Fail if cascade risk rises more than this over the pipeline's baseline
+  # median, even when the absolute score is still under fail_over.
+  max_regression: 10
+
+suppressions:
+  # A 'reason' is mandatory and each rule must be scoped to an agent, a kind,
+  # or both — a catch-all would hide every finding.
+  - agent: flaky-summarizer
+    kind: unsupported_flip
+    reason: "restates the group position verbatim; tracked in ENG-4821"
+    # Optional. Once past this date the rule stops suppressing AND is reported,
+    # so stale exceptions surface instead of quietly accumulating.
+    expires: 2026-12-31
+
+  - kind: token_spike
+    reason: "the long-form writer legitimately produces large outputs"

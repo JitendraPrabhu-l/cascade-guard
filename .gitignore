@@ -25,3 +25,6 @@ Thumbs.db
 # Cascade Guard outputs
 *.cascade-guard.html
 demo_output/
+
+scope.md
+ROADMAP.md
