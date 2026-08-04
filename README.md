@@ -229,8 +229,8 @@ Optional fields: `turn`, `run_id`, `event_id`, `role` (`assistant`/`user`/`tool`
 `timestamp`, `tokens_in`, `tokens_out`, `stance` (explicit stance label),
 `evidence` (list of references), `metadata` (object).
 
-Adapters for CrewAI, AutoGen, and OpenTelemetry GenAI spans are on the
-[roadmap](ROADMAP.md); the generic format is the bridge until then.
+Adapters for CrewAI, AutoGen, and OpenTelemetry GenAI spans are planned;
+the generic format is the bridge until then.
 
 ## How detection works
 
@@ -317,7 +317,6 @@ policy rule, or a baseline regression.
 
 - [docs/deployment.md](docs/deployment.md) — air-gapped installs, egress, data
   handling, rollout, supply-chain verification
-- [ROADMAP.md](ROADMAP.md) — shipped scope and what is next
 - [CONTRIBUTING.md](CONTRIBUTING.md) — dev setup, style, PR checklist
 - [SECURITY.md](SECURITY.md) — vulnerability reporting
 - [CHANGELOG.md](CHANGELOG.md)

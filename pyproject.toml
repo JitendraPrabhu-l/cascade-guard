@@ -68,7 +68,6 @@ include = [
     "README.md",
     "LICENSE",
     "CHANGELOG.md",
-    "ROADMAP.md",
 ]
 
 [tool.pytest.ini_options]
