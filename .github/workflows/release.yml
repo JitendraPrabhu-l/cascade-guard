@@ -41,8 +41,18 @@ jobs:
 
       - name: Generate SBOM (CycloneDX)
         run: |
-          python -m pip install cyclonedx-bom
-          python -m cyclonedx_py environment --output-format json --outfile dist/sbom.cdx.json
+          # `environment` with no positional <python> arg scans whichever
+          # interpreter is currently running — which by this point in the
+          # job also has `build` and `cyclonedx-bom` installed into it, so
+          # scanning it directly captures the CI toolchain, not the
+          # package's actual dependency surface. Scan a throwaway venv
+          # containing only the just-built wheel instead. Also note the
+          # real cyclonedx-py CLI takes `--of`/`-o`, not
+          # `--output-format`/`--outfile`.
+          python -m venv /tmp/sbom-venv
+          /tmp/sbom-venv/bin/pip install --quiet dist/*.whl
+          python -m pip install --quiet cyclonedx-bom
+          python -m cyclonedx_py environment --of json -o dist/sbom.cdx.json /tmp/sbom-venv/bin/python
 
       - name: Compute SLSA subject hashes
         id: hash
