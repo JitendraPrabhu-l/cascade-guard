@@ -29,3 +29,6 @@ demo_output/
 scope.md
 ROADMAP.md
 TRACTION.MD
+local_docs
+assets
+.env
